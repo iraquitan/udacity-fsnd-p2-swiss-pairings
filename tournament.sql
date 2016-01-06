@@ -53,3 +53,26 @@ CREATE VIEW standings AS
          ON matches.id = players.id
 --     GROUP BY players.id
     ORDER BY wins DESC;
+
+-- Trigger
+CREATE FUNCTION check_player() RETURNS trigger AS $$
+DECLARE
+  player1 BOOLEAN;
+  player2 BOOLEAN;
+BEGIN
+  player1 := (SELECT exists(SELECT * FROM players WHERE id = NEW.winner_id));
+  player2 := (SELECT exists(SELECT * FROM players WHERE id = NEW.loser_id));
+  IF player1 IS FALSE THEN
+    RAISE EXCEPTION 'player1 id not in players TABLE';
+  ELSIF player2 IS FALSE THEN
+    RAISE EXCEPTION 'player2 id not in players TABLE';
+  END IF;
+  RETURN NEW;
+END;
+$$ language plpgsql;
+
+CREATE TRIGGER check_player_trg
+    BEFORE INSERT OR UPDATE
+    ON matches
+    FOR EACH ROW
+    EXECUTE PROCEDURE check_player();
