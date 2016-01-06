@@ -134,7 +134,7 @@ if __name__ == '__main__':
     test_register_count_delete()
     test_standings_before_matches()
     test_report_matches()
-    # test_pairings()
+    test_pairings()
     print "Success!  All tests pass!"
 
 
