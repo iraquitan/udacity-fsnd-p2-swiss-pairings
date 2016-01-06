@@ -118,8 +118,11 @@ def swiss_pairings():
         name2: the second player's name
     """
     cp = count_players()
+    swp = []
     if cp % 2 == 0:  # Assume ever number of players
         ps = player_standings()
-        # TODO Make swiss pairings
-        # for psi in ps:
-        #     psi
+        for i in range(0, len(ps)-1, 2):
+            swp.append((ps[i][0], ps[i][1], ps[i+1][0], ps[i+1][1]))
+    else:
+        raise Exception('Number of players should be even.')
+    return swp
