@@ -119,7 +119,7 @@ def swiss_pairings():
     """
     cp = count_players()
     swp = []
-    if cp % 2 == 0:  # Assume ever number of players
+    if cp % 2 == 0:  # Assume even number of players
         ps = player_standings()
         for i in range(0, len(ps)-1, 2):
             swp.append((ps[i][0], ps[i][1], ps[i+1][0], ps[i+1][1]))
