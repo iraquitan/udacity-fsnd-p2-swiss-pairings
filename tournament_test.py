@@ -126,15 +126,55 @@ def test_pairings():
     print "8. After one match, players with one win are paired."
 
 
+def test_new_database():
+    # delete_matches()
+    # delete_players()
+    create_tournament(num_of_players=8)
+    tournament_id = 2
+    # register_player("Twilight Sparkle")
+    # register_player("Fluttershy")
+    # register_player("Applejack")
+    # register_player("Pinkie Pie")
+    # register_player("Iraquitan Filho")
+    # register_player("Alexandre Gomes")
+    # register_player("Adan Salazar")
+    # register_player("Djenifer Paula")
+    players_id = get_players_id()
+    for id in players_id:
+        subscribe_player(id, tournament_id)
+    standings = player_standings(tournament_id)
+    [id1, id2, id3, id4, id5, id6, id7, id8] = [row[1] for row in standings]
+    # First match
+    report_match(tournament_id, id1, id2)
+    report_match(tournament_id, id3, id4)
+    report_match(tournament_id, id5, id6)
+    report_match(tournament_id, id7, id8)
+    pairings = swiss_pairings(tournament_id)
+    if len(pairings) != 4:
+        raise ValueError(
+            "For eight players, swiss_pairings should return four pairs.")
+    [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
+     (pid5, pname5, pid6, pname6), (pid7, pname7, pid8, pname8)] = pairings
+    correct_pairs = set([frozenset([id1, id3]), frozenset([id2, id4]),
+                         frozenset([id5, id6]), frozenset([id7, id8])])
+    actual_pairs = set([frozenset([pid1, pid2]), frozenset([pid3, pid4]),
+                        frozenset([pid5, pid6]), frozenset([pid7, pid8])])
+    if correct_pairs != actual_pairs:
+        raise ValueError(
+            "After one match, players with one win should be paired.")
+    print "9. After one match, players with one win are paired."
+
 if __name__ == '__main__':
-    test_delete_matches()
-    test_delete()
-    test_count()
-    test_register()
-    test_register_count_delete()
-    test_standings_before_matches()
-    test_report_matches()
-    test_pairings()
+    # test_delete_matches()
+    # test_delete()
+    # test_count()
+    # test_register()
+    # test_register_count_delete()
+    # test_standings_before_matches()
+    # test_report_matches()
+    # test_pairings()
+    # Custom tests
+    test_new_database()
     print "Success!  All tests pass!"
 
 
