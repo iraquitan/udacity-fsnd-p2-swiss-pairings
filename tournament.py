@@ -5,7 +5,7 @@
 
 import psycopg2
 import bleach
-import re
+import random
 
 
 def connect():
@@ -33,6 +33,16 @@ def delete_players():
     conn.close()
 
 
+def delete_tournaments():
+    """Remove all the tournaments records from the database."""
+    conn = connect()
+    c = conn.cursor()
+    query = "DELETE from tournaments;"
+    c.execute(query)
+    conn.commit()
+    conn.close()
+
+
 def count_players():
     """Returns the number of players currently registered."""
     conn = connect()
@@ -54,16 +64,25 @@ def register_player(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    # name_words = re.findall('\w+', name)
-    # fname = name_words[0]
-    # if len(name_words) > 1:
-    #     lname = name_words[-1]
-    # else:
-    #     lname = ""
     conn = connect()
     c = conn.cursor()
     query = "INSERT INTO players (name) VALUES (%s)"
     c.execute(query, (bleach.clean(name),))
+    conn.commit()
+    conn.close()
+
+
+def unregister_player(player_id, tournament_id):
+    """Removes a player from the tournament database.
+
+    Args:
+      name: the player's full name (need not be unique).
+    """
+    conn = connect()
+    c = conn.cursor()
+    query = "DELETE FROM tournament_players " \
+            "WHERE player_id = %s AND tournament_id = %s;"
+    c.execute(query, (bleach.clean(player_id), bleach.clean(tournament_id), ))
     conn.commit()
     conn.close()
 
@@ -74,9 +93,13 @@ def player_standings(tournament_id):
     The first entry in the list should be the player in first place, or a player
     tied for first place if there is currently a tie.
 
+    Args:
+      tournament_id: the tournament id
+
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
-        id: the player's unique id (assigned by the database)
+        t_id: the tournament's unique id (assigned by the database)
+        p_id: the player's unique id (assigned by the database)
         name: the player's full name (as registered)
         wins: the number of matches the player has won
         matches: the number of matches the player has played
@@ -85,17 +108,47 @@ def player_standings(tournament_id):
     c = conn.cursor()
     query = "SELECT * FROM standings WHERE t_id = %s ORDER BY wins DESC;"
     c.execute(query, (bleach.clean(tournament_id),))
-    # ps = [(row[0], row[1]+' '+row[2], row[3], row[4]) for row in c.fetchall()]
     ps = [(row[0], row[1], row[2], row[3], row[4]) for row in c.fetchall()]
     conn.commit()
     conn.close()
     return ps
 
 
-def report_match(tournament_id, winner, loser):
+def player_standings_omw(tournament_id):
+    """Returns a list of the players and their win records, sorted by wins.
+
+    The first entry in the list should be the player in first place, or a player
+    tied for first place if there is currently a tie.
+
+    Args:
+      tournament_id: the tournament id
+
+    Returns:
+      A list of tuples, each of which contains (id, name, wins, matches):
+        t_id: the tournament' unique id (assigned by the database)
+        p_id: the player's unique id (assigned by the database)
+        name: the player's full name (as registered)
+        wins: the number of matches the player has won
+        matches: the number of matches the player has played
+        omw: the player's opponent match wins
+    """
+    conn = connect()
+    c = conn.cursor()
+    query = "SELECT * FROM standings_owm" \
+            "WHERE t_id = %s ORDER BY wins DESC, omw DESC;"
+    c.execute(query, (bleach.clean(tournament_id),))
+    ps = [(row[0], row[1], row[2], row[3], row[4], row[5])
+          for row in c.fetchall()]
+    conn.commit()
+    conn.close()
+    return ps
+
+
+def report_match(t_id, winner, loser):
     """Records the outcome of a single match between two players.
 
     Args:
+      t_id: the tournament id
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
@@ -103,7 +156,7 @@ def report_match(tournament_id, winner, loser):
     c = conn.cursor()
     query = "INSERT INTO matches (tournament_id, winner_id, loser_id) " \
             "VALUES (%s, %s, %s)"
-    c.execute(query, (bleach.clean(tournament_id), bleach.clean(winner),
+    c.execute(query, (bleach.clean(t_id), bleach.clean(winner),
                       bleach.clean(loser),))
     conn.commit()
     conn.close()
@@ -127,12 +180,25 @@ def swiss_pairings(tournament_id):
         id2: the second player's unique id
         name2: the second player's name
     """
+    # TODO pairings when number of players is even but not factor of 2 (e.g 6)
     cp = count_players()
     swp = []
+    already_paired = set([])
     if cp % 2 == 0:  # Assume even number of players
         ps = player_standings(tournament_id)
-        for i in range(0, len(ps)-1, 2):
-            swp.append((ps[i][1], ps[i][2], ps[i+1][1], ps[i+1][2]))
+        for i in range(0, len(ps)-1):
+            pid = ps[i][1]
+            if set([pid]).issubset(already_paired):
+                continue
+            else:
+                psi_opponents = get_players_opponents(pid, tournament_id)
+                psi_opponent = random.choice(psi_opponents)
+                while set([psi_opponent[0]]).issubset(already_paired):
+                    psi_opponents.remove(psi_opponent)  # remove
+                    psi_opponent = random.choice(psi_opponents)
+                already_paired = already_paired.union([pid, psi_opponent[0]])
+                swp.append((ps[i][1], ps[i][2],
+                            psi_opponent[0], psi_opponent[1]))
     else:
         raise Exception('Number of players should be even.')
     return swp
@@ -202,3 +268,42 @@ def subscribe_player(player_id, tournament_id):
     c.execute(query, (bleach.clean(player_id), bleach.clean(tournament_id),))
     conn.commit()
     conn.close()
+
+
+def number_of_matches(num_of_players):
+    """Finds out the necessary number of swiss pair rounds.
+
+    Args:
+      num_of_players: the number of players in tournament.
+    Returns:
+      num_of_rounds: necessary number of rounds to find winner.
+    """
+    num_of_rounds = 0
+    while 2**num_of_rounds < num_of_players:
+        num_of_rounds += 1
+    return num_of_rounds
+
+
+def get_players_opponents(player_id, tournament_id):
+    """Add a player to participate on tournament.
+
+    Assuming the tournament still have seats, subscribe player in tournament.
+
+    Args:
+      player_id: the player's id.
+      tournament_id: the tournament' id.
+
+    Returns:
+      opponents: the player's possible opponents ids.
+    """
+    conn = connect()
+    c = conn.cursor()
+    query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, a.wins " \
+            "FROM standings AS a LEFT JOIN standings AS b " \
+            "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
+            "WHERE a.wins = b.wins AND a.p_id = %s AND a.t_id = %s;"
+    c.execute(query, (bleach.clean(player_id), bleach.clean(tournament_id),))
+    opponents = [(row[1], row[2]) for row in c.fetchall()]
+    conn.commit()
+    conn.close()
+    return opponents
