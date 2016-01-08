@@ -127,41 +127,51 @@ def test_pairings():
 
 
 def test_new_database():
-    # delete_matches()
-    # delete_players()
+    players_ids = get_players_id()
+    tournaments_ids = get_tournaments_id()
+    for p_id in players_ids:
+        for t_id in tournaments_ids:
+            unregister_player(p_id, t_id)
+    delete_matches()
+    delete_players()
+    delete_tournaments()
     create_tournament(num_of_players=8)
-    tournament_id = 2
-    # register_player("Twilight Sparkle")
-    # register_player("Fluttershy")
-    # register_player("Applejack")
-    # register_player("Pinkie Pie")
-    # register_player("Iraquitan Filho")
-    # register_player("Alexandre Gomes")
-    # register_player("Adan Salazar")
-    # register_player("Djenifer Paula")
-    players_id = get_players_id()
-    for id in players_id:
-        subscribe_player(id, tournament_id)
-    standings = player_standings(tournament_id)
-    [id1, id2, id3, id4, id5, id6, id7, id8] = [row[1] for row in standings]
-    # First match
-    report_match(tournament_id, id1, id2)
-    report_match(tournament_id, id3, id4)
-    report_match(tournament_id, id5, id6)
-    report_match(tournament_id, id7, id8)
-    pairings = swiss_pairings(tournament_id)
-    if len(pairings) != 4:
-        raise ValueError(
-            "For eight players, swiss_pairings should return four pairs.")
-    [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
-     (pid5, pname5, pid6, pname6), (pid7, pname7, pid8, pname8)] = pairings
-    correct_pairs = set([frozenset([id1, id3]), frozenset([id2, id4]),
-                         frozenset([id5, id6]), frozenset([id7, id8])])
-    actual_pairs = set([frozenset([pid1, pid2]), frozenset([pid3, pid4]),
-                        frozenset([pid5, pid6]), frozenset([pid7, pid8])])
-    if correct_pairs != actual_pairs:
-        raise ValueError(
-            "After one match, players with one win should be paired.")
+    reg_tournaments = get_tournaments_id()
+    register_player("Twilight Sparkle")
+    register_player("Fluttershy")
+    register_player("Applejack")
+    register_player("Pinkie Pie")
+    register_player("Iraquitan Filho")
+    register_player("Alexandre Gomes")
+    register_player("Adan Salazar")
+    register_player("Djenifer Paula")
+    players_ids = get_players_id()
+    for id in players_ids:
+        subscribe_player(id, reg_tournaments[0])
+    for match in range(number_of_matches(count_players())):
+        print('Playing match {}'.format(match + 1))
+        pairings = swiss_pairings(reg_tournaments[0])
+        if len(pairings) != 4:
+            raise ValueError(
+                "For eight players, swiss_pairings should return four pairs.")
+        [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
+         (pid5, pname5, pid6, pname6), (pid7, pname7, pid8, pname8)] = pairings
+        # actual_pairs = set([frozenset([pid1, pid2]), frozenset([pid3, pid4]),
+        #                     frozenset([pid5, pid6]), frozenset([pid7, pid8])])
+        report_match(reg_tournaments[0], pid1, pid2)
+        report_match(reg_tournaments[0], pid3, pid4)
+        report_match(reg_tournaments[0], pid5, pid6)
+        report_match(reg_tournaments[0], pid7, pid8)
+        standings = player_standings(reg_tournaments[0])
+        for st in standings:
+            print(st)
+    print("\nWinner is {}".format(standings[0]))
+
+    create_tournament(num_of_players=6)
+    reg_tournaments = get_tournaments_id()
+    for id in players_ids:
+        subscribe_player(id, reg_tournaments[-1])
+
     print "9. After one match, players with one win are paired."
 
 if __name__ == '__main__':
