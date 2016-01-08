@@ -41,13 +41,12 @@ CREATE TABLE tournament_players (
 CREATE TABLE matches (
   id SERIAL PRIMARY KEY,
   tournament_id INTEGER REFERENCES tournaments,
-  winner_id INTEGER REFERENCES tournament_players,
-  loser_id INTEGER REFERENCES tournament_players,
+  winner_id INTEGER REFERENCES players,
+  loser_id INTEGER REFERENCES players,
   date_created TIMESTAMP DEFAULT current_timestamp
 );
 
 -- Create new standings view
--- TODO Add OMW to sort standings as tiebreaker
 CREATE VIEW standings AS
   SELECT tournaments.id AS t_id, players.id AS p_id, players.name,
       (SELECT count(matches.id)
@@ -67,6 +66,25 @@ CREATE VIEW standings AS
         ON players.id = tournament_players.player_id
       LEFT JOIN tournaments
         ON tournaments.id = tournament_players.tournament_id;
+
+-- OMW (Opponent Match Wins)
+CREATE VIEW omw AS
+  SELECT a.t_id AS omw_tid, a.p_id AS omw_pid, sum(o.wins) AS OMW
+  FROM standings AS a
+    LEFT JOIN matches ON (
+      a.p_id = matches.winner_id OR a.p_id = matches.loser_id) AND a.t_id = matches.tournament_id
+    LEFT JOIN standings AS o
+      ON a.p_id <> o.p_id AND (o.p_id = matches.winner_id OR o.p_id = matches.loser_id)
+    WHERE a.t_id = matches.tournament_id AND a.t_id = o.t_id
+  GROUP BY a.p_id, a.t_id;
+
+CREATE VIEW standings_owm AS
+  SELECT standings_new.t_id, standings_new.p_id, standings_new.name,
+    standings_new.wins, standings_new.matches_played, standings_new.omw
+  FROM (standings
+    LEFT JOIN omw
+      ON omw.omw_tid = standings.t_id AND omw.omw_pid = standings.p_id)
+    AS standings_new;
 
 -- Trigger to check if player is participating on tournament
 CREATE FUNCTION check_player() RETURNS trigger AS $$
