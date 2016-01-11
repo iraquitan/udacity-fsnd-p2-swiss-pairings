@@ -46,14 +46,28 @@ CREATE TABLE matches (
   date_created TIMESTAMP DEFAULT current_timestamp
 );
 
+-- Create byes table
+CREATE TABLE byes (
+  tournament_id INTEGER REFERENCES tournaments,
+  player_id INTEGER REFERENCES players,
+  date_created TIMESTAMP DEFAULT current_timestamp,
+  PRIMARY KEY (tournament_id, player_id)
+);
+
 -- Create new standings view
 CREATE VIEW standings AS
   SELECT tournaments.id AS t_id, players.id AS p_id, players.name,
+    (
       (SELECT count(matches.id)
        FROM matches
        WHERE tournament_players.player_id = matches.winner_id
              AND matches.tournament_id = tournament_players.tournament_id
-      ) AS wins,
+      ) +
+      (SELECT count(byes.player_id)
+       FROM byes
+       WHERE tournament_players.player_id = byes.player_id
+             AND byes.tournament_id = tournament_players.tournament_id)
+    ) AS wins,
       (SELECT count(matches.id)
        FROM matches
        WHERE (tournament_players.player_id = matches.winner_id
@@ -86,8 +100,8 @@ CREATE VIEW standings_owm AS
       ON omw.omw_tid = standings.t_id AND omw.omw_pid = standings.p_id)
     AS standings_new;
 
--- Trigger to check if player is participating on tournament
-CREATE FUNCTION check_player() RETURNS trigger AS $$
+-- Trigger to check if player is participating on tournament for matches table
+CREATE FUNCTION check_player_match() RETURNS trigger AS $$
 DECLARE
   player1 BOOLEAN;
   player2 BOOLEAN;
@@ -107,13 +121,13 @@ BEGIN
 END;
 $$ language plpgsql;
 
-CREATE TRIGGER check_player_trg
+CREATE TRIGGER check_player_match_trg
     BEFORE INSERT OR UPDATE
     ON matches
     FOR EACH ROW
-    EXECUTE PROCEDURE check_player();
+    EXECUTE PROCEDURE check_player_match();
 
--- Trigger to check if player is participating on tournament
+-- Trigger to check if tournament is already full or not
 CREATE FUNCTION check_tournament() RETURNS trigger AS $$
 DECLARE
   subscribed_players INTEGER;
@@ -137,3 +151,24 @@ CREATE TRIGGER check_tournament_trg
     ON tournament_players
     FOR EACH ROW
     EXECUTE PROCEDURE check_tournament();
+
+-- Trigger to check if player is participating on tournament for byes table
+CREATE FUNCTION check_player_bye() RETURNS trigger AS $$
+DECLARE
+  player BOOLEAN;
+BEGIN
+  player := (SELECT exists(
+      SELECT * FROM tournament_players
+      WHERE player_id = NEW.player_id AND tournament_id = NEW.tournament_id));
+  IF player IS FALSE THEN
+    RAISE EXCEPTION 'player id not in tournament_players TABLE';
+  END IF;
+  RETURN NEW;
+END;
+$$ language plpgsql;
+
+CREATE TRIGGER check_player_match_trg
+    BEFORE INSERT OR UPDATE
+    ON byes
+    FOR EACH ROW
+    EXECUTE PROCEDURE check_player_bye();
