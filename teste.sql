@@ -32,10 +32,17 @@ INSERT INTO matches (tournament_id, winner_id, loser_id) VALUES (5, 33, 35);
 
 -- SELECT count(id) FROM players;
 
+-- Opponents with same number of wins
 SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, a.wins
 FROM standings AS a LEFT JOIN standings AS b
         ON a.p_id <> b.p_id AND a.t_id = b.t_id
-WHERE a.wins = b.wins AND a.p_id = 41 AND a.t_id = 7;
+WHERE a.wins = b.wins AND a.p_id = 177 AND a.t_id = 27;
+
+-- Opponents with one win less than player
+SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, b.wins
+FROM standings AS a LEFT JOIN standings AS b
+        ON a.p_id <> b.p_id AND a.t_id = b.t_id
+WHERE b.wins = a.wins-1 AND a.p_id = 177 AND a.t_id = 27;
 
 
 SELECT * FROM (SELECT a.p_id AS a_id, b.p_id AS b_id, a.wins
