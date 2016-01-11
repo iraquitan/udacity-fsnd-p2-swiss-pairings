@@ -127,14 +127,19 @@ def test_pairings():
 
 
 def test_new_database():
-    players_ids = get_players_id()
-    tournaments_ids = get_tournaments_id()
-    for p_id in players_ids:
-        for t_id in tournaments_ids:
-            unregister_player(p_id, t_id)
+    # Delete records
+    # players_ids = get_players_id()
+    # tournaments_ids = get_tournaments_id()
+    # for p_id in players_ids:
+    #     for t_id in tournaments_ids:
+    #         unregister_player(p_id, t_id)
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
     delete_tournaments()
+
+    # Even and power of 2 number of players
     create_tournament(num_of_players=8)
     reg_tournaments = get_tournaments_id()
     register_player("Twilight Sparkle")
@@ -149,28 +154,92 @@ def test_new_database():
     for id in players_ids:
         subscribe_player(id, reg_tournaments[0])
     for match in range(number_of_matches(count_players())):
-        print('Playing match {}'.format(match + 1))
         pairings = swiss_pairings(reg_tournaments[0])
-        if len(pairings) != 4:
+        if len(pairings['pairs']) != 4:
             raise ValueError(
                 "For eight players, swiss_pairings should return four pairs.")
-        [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
-         (pid5, pname5, pid6, pname6), (pid7, pname7, pid8, pname8)] = pairings
-        # actual_pairs = set([frozenset([pid1, pid2]), frozenset([pid3, pid4]),
-        #                     frozenset([pid5, pid6]), frozenset([pid7, pid8])])
-        report_match(reg_tournaments[0], pid1, pid2)
-        report_match(reg_tournaments[0], pid3, pid4)
-        report_match(reg_tournaments[0], pid5, pid6)
-        report_match(reg_tournaments[0], pid7, pid8)
-        standings = player_standings(reg_tournaments[0])
+        print('\nSwiss pairings for match {}'.format(match + 1))
+        for pairs in pairings['pairs']:
+            print(pairs)
+        print('Match {} results'.format(match + 1))
+        [
+            (pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
+            (pid5, pname5, pid6, pname6), (pid7, pname7, pid8, pname8)
+         ] = pairings['pairs']
+        decide_match(reg_tournaments[0], pid1, pid2)
+        decide_match(reg_tournaments[0], pid3, pid4)
+        decide_match(reg_tournaments[0], pid5, pid6)
+        decide_match(reg_tournaments[0], pid7, pid8)
+        standings = player_standings_omw(reg_tournaments[0])
+
+        print("|{0:_^8}|{1:_^8}|{2:_^20}|{3:_^6}|{4:_^9}|{5:_^5}|".format(
+                't-id', 'p-id', 'name', 'wins', 'matches', 'OMW'))
         for st in standings:
-            print(st)
+            print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|{5:^5}|".format(
+                    st[0], st[1], st[2], st[3], st[4], st[5]))
     print("\nWinner is {}".format(standings[0]))
 
-    create_tournament(num_of_players=6)
+    # Even but not power of 2 number of player
+    tournament_n_players = 6
+    create_tournament(num_of_players=tournament_n_players)
     reg_tournaments = get_tournaments_id()
-    for id in players_ids:
-        subscribe_player(id, reg_tournaments[-1])
+    for i in range(tournament_n_players):
+        subscribe_player(players_ids[i], reg_tournaments[-1])
+    n_tournament_players = count_tournament_players(reg_tournaments[-1])
+    for match in range(number_of_matches(n_tournament_players)):
+        pairings = swiss_pairings(reg_tournaments[-1])
+        if len(pairings['pairs']) != n_tournament_players / 2:
+            raise ValueError(
+                "For six players, swiss_pairings should return three pairs.")
+        print('\nSwiss pairings for match {}'.format(match + 1))
+        for pairs in pairings['pairs']:
+            print(pairs)
+        print('Match {} results'.format(match + 1))
+        [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
+         (pid5, pname5, pid6, pname6)] = pairings['pairs']
+        decide_match(reg_tournaments[-1], pid1, pid2)
+        decide_match(reg_tournaments[-1], pid3, pid4)
+        decide_match(reg_tournaments[-1], pid5, pid6)
+        standings = player_standings_omw(reg_tournaments[-1])
+
+        print("|{0:_^8}|{1:_^8}|{2:_^20}|{3:_^6}|{4:_^9}|{5:_^5}|".format(
+                    't-id', 'p-id', 'name', 'wins', 'matches', 'OMW'))
+        for st in standings:
+            print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|{5:^5}|".format(
+                    st[0], st[1], st[2], st[3], st[4], st[5]))
+    print("\nWinner is {}".format(standings[0]))
+
+    # Odd number of players
+    tournament_n_players = 7
+    create_tournament(num_of_players=tournament_n_players)
+    reg_tournaments = get_tournaments_id()
+    for i in range(tournament_n_players):
+        subscribe_player(players_ids[i], reg_tournaments[-1])
+    n_tournament_players = count_tournament_players(reg_tournaments[-1])
+    for match in range(number_of_matches(n_tournament_players)):
+        pairings = swiss_pairings(reg_tournaments[-1])
+        if len(pairings['pairs']) != n_tournament_players / 2:
+            raise ValueError(
+                "For seven players, swiss_pairings should return three pairs.")
+        print('\nSwiss pairings for match {}'.format(match + 1))
+        for pairs in pairings['pairs']:
+            print(pairs)
+        print('Match {} results'.format(match + 1))
+        [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4),
+         (pid5, pname5, pid6, pname6)] = pairings['pairs']
+        (pid7, pname7) = pairings['byes']
+        decide_match(reg_tournaments[-1], pid1, pid2)
+        decide_match(reg_tournaments[-1], pid3, pid4)
+        decide_match(reg_tournaments[-1], pid5, pid6)
+        report_bye(reg_tournaments[-1], pid7)
+        standings = player_standings_omw(reg_tournaments[-1])
+
+        print("|{0:_^8}|{1:_^8}|{2:_^20}|{3:_^6}|{4:_^9}|{5:_^5}|".format(
+                    't-id', 'p-id', 'name', 'wins', 'matches', 'OMW'))
+        for st in standings:
+            print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|{5:^5}|".format(
+                    st[0], st[1], st[2], st[3], st[4], st[5]))
+    print("\nWinner is {}".format(standings[0]))
 
     print "9. After one match, players with one win are paired."
 
