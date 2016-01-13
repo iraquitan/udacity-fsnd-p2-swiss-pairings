@@ -234,93 +234,107 @@ def swiss_pairings(tournament_id):
     """
     cp = count_tournament_players(tournament_id)
     swp = []
+    have_byes = set(get_tournament_byes(tournament_id))
     already_paired = set([])
     ps = player_standings(tournament_id)
-    for i in range(0, len(ps)-1):
+    if cp % 2 == 0:
+        bye_player = None
+    else:
+        players_ps = list(ps)
+        if len(have_byes) is 0:  # If have_byes is empty, shuffle
+            random.shuffle(players_ps)
+        else:  # Search in
+            players_ps.reverse()  # Search byes from the end of standings
+        for p in players_ps:
+            if len(have_byes) is 0:  # If have_byes is empty, add
+                bye_player = (p[1], p[2])
+                ps.remove(p)  # Remove bye player
+                break
+            else:  # If have_byes not empty, check if player already have bye
+                if set([p[1]]).issubset(have_byes) is False:
+                    bye_player = (p[1], p[2])
+                    ps.remove(p)  # Remove bye player
+                    break
+
+    for i in range(len(ps)-1):
         pap = set([])
         pid = ps[i][1]
         if set([pid]).issubset(already_paired):
             continue
         else:
             # Fetch for opponents
-            psi_opponents = get_players_opponents(pid, tournament_id)
-            psi_opponents_id = [psid[0] for psid in psi_opponents]
+            pid_opponents = get_player_opponents(pid, tournament_id)
+            if bye_player is not None:
+                pid_opponents = [ops for ops in pid_opponents
+                                 if ops[0] != bye_player[0]]
+            pid_opponents_id = [op[0] for op in pid_opponents]
             # If opponents already paired, fetch opponents w/ 1 win less
-            if set(psi_opponents_id).issubset(already_paired):
-                    psi_opponents = get_players_opponents(
-                            pid, tournament_id, same_wins=False)
-            random.shuffle(psi_opponents)  # Shuffle opponents
-            for i2, psi_opponent in enumerate(psi_opponents):
+            if set(pid_opponents_id).issubset(already_paired):
+                pid_opponents = get_player_opponents(pid, tournament_id,
+                                                     same_wins=False)
+                if bye_player is not None:
+                    pid_opponents = [ops for ops in pid_opponents
+                                     if ops[0] != bye_player[0]]
+            random.shuffle(pid_opponents)  # Shuffle opponents
+
+            op_pl = set([])
+            pid_opponents2 = list(pid_opponents)
+            for pi in pid_opponents:
+                pid_opponents2.remove(pi)
+                for pj in pid_opponents2:
+                    if already_played(tournament_id, pi[0], pj[0]):
+                        op_pl = op_pl.union(set([pi]))
+                        op_pl = op_pl.union(set([pj]))
+            op_pl_list = list(op_pl)
+            if len(op_pl_list) == 0:
+                opponents_to_fetch = pid_opponents
+            else:
+                opponents_to_fetch = op_pl_list
+            # for i2, pid_opponent in enumerate(pid_opponents):
+            for i2, pid_opponent in enumerate(opponents_to_fetch):
                 # If opponent already paired
-                if set([psi_opponent[0]]).issubset(already_paired):
-                    if i2 == len(psi_opponents)-1:
-                            # Update already paired players anyway as rematch
-                            # can't be avoided
-                            psi_opponent = random.choice(list(pap))
-                            already_paired = already_paired.union(
-                                    [pid, psi_opponent[0]])
-                            swp.append((pid, ps[i][2],
-                                        psi_opponent[0], psi_opponent[1]))
-                            # TODO Try to change with another player already matched # noqa
-                            print("-----------------------------------------"
-                                  "-----------------------------------------> "
-                                  "Can't avoid {0} and {1} rematch".format(
-                                    pid, psi_opponent[0]))
-                    else:
-                        continue
+                if set([pid_opponent[0]]).issubset(already_paired) \
+                        and i2 != len(pid_opponents)-1:
+                    continue
+                elif set([pid_opponent[0]]).issubset(already_paired) \
+                        and i2 == len(pid_opponents)-1:
+                    new_opponent = random.choice(list(pap))
+                    already_paired = already_paired.union(
+                            [pid, new_opponent[0]])
+                    swp.append((pid, ps[i][2], new_opponent[0],
+                                new_opponent[1]))
+                    # TODO Try to change with another player already matched # noqa
+                    print("\n-----------------------------------------"
+                          "--------------------------> "
+                          "Can't avoid {0} and {1} rematch".format(
+                            pid, new_opponent[0]))
                 else:
-                    ap = already_played(tournament_id, pid,
-                                        psi_opponent[0])
-                    if ap is True:
-                        pap = pap.union(set([psi_opponent]))
+                    ap = already_played(tournament_id, pid, pid_opponent[0])
+                    if ap is True and i2 != len(pid_opponents)-1:
+                        pap = pap.union(set([pid_opponent]))
                         continue
+                    elif ap is True and i2 == len(pid_opponents)-1:
+                        pap = pap.union(set([pid_opponent]))
+                        # Update already paired players anyway as rematch
+                        # can't be avoided
+                        new_opponent = random.choice(list(pap))
+                        already_paired = already_paired.union(
+                                [pid, new_opponent[0]])
+                        swp.append((pid, ps[i][2], new_opponent[0],
+                                    new_opponent[1]))
+                        # TODO Try to change with another player already matched # noqa
+                        print("\n-----------------------------------------"
+                              "------------------------>>> "
+                              "Can't avoid {0} and {1} rematch".format(
+                                pid, new_opponent[0]))
                     else:
                         # Update already paired players
                         already_paired = already_paired.union(
-                                [pid, psi_opponent[0]])
-                        swp.append((ps[i][1], ps[i][2],
-                                    psi_opponent[0], psi_opponent[1]))
+                                [pid, pid_opponent[0]])
+                        swp.append((pid, ps[i][2], pid_opponent[0],
+                                    pid_opponent[1]))
                         break
-            # # If opponent already paired, remove and random choose another
-            # while set([psi_opponent[0]]).issubset(already_paired) or \
-            #                 ap is True:
-            #     if ap:
-            #         print("{0} and {1} alreary played!".format(
-            #                 pid, psi_opponent[0]))
-            #     psi_opponents.remove(psi_opponent)  # remove
-            #     # If opponents empty, get opponents with one win less than
-            #     # player
-            #     if len(psi_opponents) == 0:
-            #         psi_opponents = get_players_opponents(
-            #                 pid, tournament_id, same_wins=False)
-            #         if len(psi_opponents) == 0:
-            #             psi_opponent = None
-            #             break  # break if no opponents with one win less
-            #     psi_opponent = random.choice(psi_opponents)
-            #     ap = already_played(tournament_id, pid, psi_opponent[0])
-            # if psi_opponent is not None:
-            #     # Update already paired players
-            #     already_paired = already_paired.union([pid, psi_opponent[0]])
-            #     swp.append((ps[i][1], ps[i][2],
-            #                 psi_opponent[0], psi_opponent[1]))
-    if cp % 2 == 0:  # Even number of players
-        swp_output = {'pairs': swp, 'byes': None}
-    else:  # Odd number of players
-        byes = get_tournament_byes(tournament_id)
-        tournament_players_id = get_tournament_players_id(tournament_id)
-        not_paired_player = set(tournament_players_id).symmetric_difference(
-                already_paired)
-        if not_paired_player.issubset(set(byes)):
-            print("Player id {} already have a bye.".format(not_paired_player))
-            print("Pairing again...")
-            swp_output = swiss_pairings(tournament_id)
-            # raise Exception("Player id {} already have a bye.".format(
-            #         not_paired_player))
-        else:
-            bye_player = get_player_standings(tournament_id,
-                                              list(not_paired_player)[0])
-            bye = (bye_player[0][1], bye_player[0][2])
-            swp_output = {'pairs': swp, 'byes': bye}
+    swp_output = {'pairs': swp, 'byes': bye_player}
     return swp_output
 
 
@@ -407,7 +421,7 @@ def get_tournaments_id():
     """
     conn = connect()
     c = conn.cursor()
-    query = "SELECT id FROM tournaments;"
+    query = "SELECT id FROM tournaments ORDER BY id;"
     c.execute(query)
     tournaments_id = [row[0] for row in c.fetchall()]
     conn.commit()
@@ -447,7 +461,7 @@ def number_of_matches(num_of_players):
     return num_of_rounds
 
 
-def get_players_opponents(player_id, tournament_id, same_wins=True):
+def get_player_opponents(player_id, tournament_id, same_wins=True):
     """Returns a player's id possible opponents.
 
     Args:
