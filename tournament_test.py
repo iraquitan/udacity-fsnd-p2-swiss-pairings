@@ -151,14 +151,22 @@ def test_new_database():
     register_player("Kevin Cordeiro")
     register_player("Yugi Muto")
     register_player("Ash Ketchum")
+    register_player("Stefani Karoline")
+    register_player("Jose Filho")
+    register_player("Ney Junior")
+    register_player("Hedurado Cordeiro")
+    register_player("Fredson Santos")
+    register_player("Yoshio")
     players_ids = get_players_id()
 
     # tournaments_n_players = [8, 6, 7, 4, 9]
-    # TODO Find error for 6 players
-    tournaments_n_players = [6]
+    tournaments_n_players = [6,6,6,6,6,6,6,6,6,6,6,6]
+    # tournaments_n_players = [4,4,4,4,4,4,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,9,9,9,9,9,9]
     for tournament_n in tournaments_n_players:
+        print("\n\n{:#^64}".format('#'))
         title = "Tournament with {} players".format(tournament_n)
-        print("\n{:#^64}".format(title))
+        print("{:#^64}".format(title))
+        print("{:#^64}".format('#'))
         create_tournament(num_of_players=tournament_n)
         reg_tournaments = get_tournaments_id()
         random.shuffle(players_ids)  # Shuffle players
@@ -167,13 +175,14 @@ def test_new_database():
         n_matches = number_of_matches(count_tournament_players(
                 reg_tournaments[-1]))
         for match in range(n_matches):
+            print("\nMatch {}".format(match+1))
             pairings = swiss_pairings(reg_tournaments[-1])
             if len(pairings['pairs']) != tournament_n / 2:
                 raise ValueError(
                     "For {0} players, swiss_pairings "
                     "should return {1} pairs.".format(tournament_n,
                                                       tournament_n/2))
-            print('\nSwiss pairings for match {}:'.format(match + 1))
+            print('Swiss pairings for match {}:'.format(match + 1))
             for pairs in pairings['pairs']:
                 print("\t{}".format(pairs))
                 decide_match(reg_tournaments[-1], pairs[0], pairs[2])
