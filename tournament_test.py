@@ -160,8 +160,9 @@ def test_new_database():
     players_ids = get_players_id()
 
     # tournaments_n_players = [8, 6, 7, 4, 9]
-    tournaments_n_players = [6,6,6,6,6,6,6,6,6,6,6,6]
-    # tournaments_n_players = [4,4,4,4,4,4,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,9,9,9,9,9,9]
+    # tournaments_n_players = [6,6,6,6,6,6,6,6,6,6,6,6]
+    # tournaments_n_players = [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+    tournaments_n_players = [4,4,4,4,4,4,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,9,9,9,9,9,9] # noqa
     for tournament_n in tournaments_n_players:
         print("\n\n{:#^64}".format('#'))
         title = "Tournament with {} players".format(tournament_n)
@@ -191,12 +192,20 @@ def test_new_database():
             if pairings['byes'] is not None:
                 report_bye(reg_tournaments[-1], pairings['byes'][0])
             print('Match {} results:'.format(match + 1))
-            standings = player_standings_omw(reg_tournaments[-1])
-            print("|{0:_^8}|{1:_^8}|{2:_^20}|{3:_^6}|{4:_^9}|{5:_^5}|".format(
-                    't-id', 'p-id', 'name', 'wins', 'matches', 'OMW'))
-            for st in standings:
-                print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|{5:^5}|".format(
-                        st[0], st[1], st[2], st[3], st[4], st[5]))
+            if match + 1 == n_matches:
+                standings = player_standings_omw(reg_tournaments[-1])
+                print("|{0:_^8}|{1:_^8}|{2:_^20}|{3:_^6}|{4:_^9}|{5:_^5}|".format(
+                        't-id', 'p-id', 'name', 'wins', 'matches', 'OMW'))
+                for st in standings:
+                    print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|{5:^5}|".format(
+                            st[0], st[1], st[2], st[3], st[4], st[5]))
+            else:
+                standings = player_standings(reg_tournaments[-1])
+                print("|{0:_^8}|{1:_^8}|{2:_^20}|{3:_^6}|{4:_^9}|".format(
+                        't-id', 'p-id', 'name', 'wins', 'matches'))
+                for st in standings:
+                    print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|".format(
+                            st[0], st[1], st[2], st[3], st[4]))
         print("\nWinner is {}".format(standings[0]))
 
     print "9. After one match, players with one win are paired."
