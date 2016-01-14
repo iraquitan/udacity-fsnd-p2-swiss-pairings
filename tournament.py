@@ -255,85 +255,84 @@ def swiss_pairings(tournament_id):
                     bye_player = (p[1], p[2])
                     ps.remove(p)  # Remove bye player
                     break
-
-    for i in range(len(ps)-1):
-        pap = set([])
+    i = 0
+    while len(swp) < len(ps)/2:
+        # print("i = {}".format(i))
         pid = ps[i][1]
-        if set([pid]).issubset(already_paired):
+        curr_player = set([(ps[i][1], ps[i][2])])
+        # if set([pid]).issubset(already_paired):
+        if curr_player.issubset(already_paired):
+            i += 1
             continue
-        else:
-            # Fetch for opponents
-            pid_opponents = get_player_opponents(pid, tournament_id)
-            if bye_player is not None:
-                pid_opponents = [ops for ops in pid_opponents
-                                 if ops[0] != bye_player[0]]
-            pid_opponents_id = [op[0] for op in pid_opponents]
-            # If opponents already paired, fetch opponents w/ 1 win less
-            if set(pid_opponents_id).issubset(already_paired):
-                pid_opponents = get_player_opponents(pid, tournament_id,
-                                                     same_wins=False)
-                if bye_player is not None:
-                    pid_opponents = [ops for ops in pid_opponents
-                                     if ops[0] != bye_player[0]]
-            random.shuffle(pid_opponents)  # Shuffle opponents
+        pid_opponents = get_player_opponents(pid, tournament_id)
+        pairing_group = curr_player.union(set(pid_opponents))
+        # Remove already paired
+        pairing_group = pairing_group.difference(already_paired)
 
-            op_pl = set([])
-            pid_opponents2 = list(pid_opponents)
-            for pi in pid_opponents:
-                pid_opponents2.remove(pi)
-                for pj in pid_opponents2:
-                    if already_played(tournament_id, pi[0], pj[0]):
-                        op_pl = op_pl.union(set([pi]))
-                        op_pl = op_pl.union(set([pj]))
-            op_pl_list = list(op_pl)
-            if len(op_pl_list) == 0:
-                opponents_to_fetch = pid_opponents
-            else:
-                opponents_to_fetch = op_pl_list
-            # for i2, pid_opponent in enumerate(pid_opponents):
-            for i2, pid_opponent in enumerate(opponents_to_fetch):
-                # If opponent already paired
-                if set([pid_opponent[0]]).issubset(already_paired) \
-                        and i2 != len(pid_opponents)-1:
-                    continue
-                elif set([pid_opponent[0]]).issubset(already_paired) \
-                        and i2 == len(pid_opponents)-1:
-                    new_opponent = random.choice(list(pap))
-                    already_paired = already_paired.union(
-                            [pid, new_opponent[0]])
-                    swp.append((pid, ps[i][2], new_opponent[0],
-                                new_opponent[1]))
-                    # TODO Try to change with another player already matched # noqa
-                    print("\n-----------------------------------------"
-                          "--------------------------> "
-                          "Can't avoid {0} and {1} rematch".format(
-                            pid, new_opponent[0]))
-                else:
-                    ap = already_played(tournament_id, pid, pid_opponent[0])
-                    if ap is True and i2 != len(pid_opponents)-1:
-                        pap = pap.union(set([pid_opponent]))
-                        continue
-                    elif ap is True and i2 == len(pid_opponents)-1:
-                        pap = pap.union(set([pid_opponent]))
-                        # Update already paired players anyway as rematch
-                        # can't be avoided
-                        new_opponent = random.choice(list(pap))
-                        already_paired = already_paired.union(
-                                [pid, new_opponent[0]])
-                        swp.append((pid, ps[i][2], new_opponent[0],
-                                    new_opponent[1]))
-                        # TODO Try to change with another player already matched # noqa
-                        print("\n-----------------------------------------"
-                              "------------------------>>> "
-                              "Can't avoid {0} and {1} rematch".format(
-                                pid, new_opponent[0]))
+        mwins = 1
+        while pairing_group == curr_player:
+            if mwins > 1:
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+                      ">>>>>>>>>>>>>>>>>>>>>> My test!!!")
+            pid_opponents = get_player_opponents(pid, tournament_id, mwins)
+            pairing_group = curr_player.union(set(pid_opponents))
+            # Remove already paired
+            pairing_group = pairing_group.difference(already_paired)
+            mwins += 1
+        # Remove bye player from opponents
+        try:
+            if bye_player is not None:
+                pairing_group = pairing_group.difference(set([bye_player]))
+        except:
+            print("Could not remove bye player {}".format(bye_player))
+
+        pairing_group_cp = list(pairing_group)
+        a_played_pairs = set([])
+        pid_played_pairs = set([])
+        for pi in list(pairing_group):
+            pairing_group_cp.remove(pi)
+            for pj in pairing_group_cp:
+                if already_played(tournament_id, pi[0], pj[0]):
+                    if pi[0] == pid or pj[0] == pid:
+                        pid_played_pairs = pid_played_pairs.union(set([pi]))
+                        pid_played_pairs = pid_played_pairs.union(set([pj]))
                     else:
-                        # Update already paired players
-                        already_paired = already_paired.union(
-                                [pid, pid_opponent[0]])
-                        swp.append((pid, ps[i][2], pid_opponent[0],
-                                    pid_opponent[1]))
-                        break
+                        a_played_pairs = a_played_pairs.union(set([pi]))
+                        a_played_pairs = a_played_pairs.union(set([pj]))
+        # Remove current player from pairing_group
+        if len(pid_played_pairs) > 0:
+            pid_played_pairs = pid_played_pairs.difference(curr_player)
+        pairing_group = pairing_group.difference(curr_player)
+        if len(a_played_pairs) == 0:
+            if len(pid_played_pairs) > 0:
+                if len(pairing_group.difference(pid_played_pairs)) > 0:
+                    pairing_group = pairing_group.difference(pid_played_pairs)
+        else:
+            if len(pid_played_pairs) > 0:
+                if len(pairing_group.difference(pid_played_pairs)) > 0:
+                    pairing_group = pairing_group.difference(pid_played_pairs)
+            if len(pairing_group.intersection(a_played_pairs)) > 0:
+                pairing_group = pairing_group.intersection(a_played_pairs)
+
+
+        pairing_group = list(pairing_group)
+        random.shuffle(pairing_group)
+        # Check if players already played
+        try:
+            if already_played(tournament_id,
+                              list(curr_player)[0][0], pairing_group[0][0]):
+                print("\n-----------------------------------------"
+                      "------------------------>>> "
+                      "Can't avoid {0} and {1} rematch".format(
+                        list(curr_player)[0], pairing_group[0]))
+        except:
+            print("Some error found!!!!")
+        # Update already paired players
+        already_paired = already_paired.union(
+                [list(curr_player)[0], pairing_group[0]])
+        swp.append((list(curr_player)[0][0], list(curr_player)[0][1],
+                    pairing_group[0][0], pairing_group[0][1]))
+        i += 1
     swp_output = {'pairs': swp, 'byes': bye_player}
     return swp_output
 
@@ -461,7 +460,7 @@ def number_of_matches(num_of_players):
     return num_of_rounds
 
 
-def get_player_opponents(player_id, tournament_id, same_wins=True):
+def get_player_opponents(player_id, tournament_id, m_wins=0):
     """Returns a player's id possible opponents.
 
     Args:
@@ -474,21 +473,53 @@ def get_player_opponents(player_id, tournament_id, same_wins=True):
     """
     conn = connect()
     c = conn.cursor()
-    if same_wins is True:
+    if m_wins is 0:
         query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, " \
                 "a.wins FROM standings AS a LEFT JOIN standings AS b " \
                 "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
                 "WHERE a.wins = b.wins AND a.p_id = %s AND a.t_id = %s;"
-    else:  # Get opponents with one win less than player
+        c.execute(query, (bleach.clean(player_id),
+                          bleach.clean(tournament_id),))
+    else:  # Get opponents with one or more win less than player
         query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, " \
                 "b.wins FROM standings AS a LEFT JOIN standings AS b " \
                 "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
-                "WHERE b.wins = a.wins-1 AND a.p_id = %s AND a.t_id = %s;"
-    c.execute(query, (bleach.clean(player_id), bleach.clean(tournament_id),))
+                "WHERE b.wins = a.wins-%s AND a.p_id = %s AND a.t_id = %s;"
+        c.execute(query, (bleach.clean(m_wins), bleach.clean(player_id),
+                          bleach.clean(tournament_id),))
     opponents = [(row[1], row[2]) for row in c.fetchall()]
     conn.commit()
     conn.close()
     return opponents
+
+# def get_player_opponents(player_id, tournament_id, same_wins=True):
+#     """Returns a player's id possible opponents.
+#
+#     Args:
+#       player_id: the player's id.
+#       tournament_id: the tournament' id.
+#       same_wins: if should search opponents with same number of wins or not
+#
+#     Returns:
+#       opponents: the player's possible opponents ids.
+#     """
+#     conn = connect()
+#     c = conn.cursor()
+#     if same_wins is True:
+#         query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, " \
+#                 "a.wins FROM standings AS a LEFT JOIN standings AS b " \
+#                 "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
+#                 "WHERE a.wins = b.wins AND a.p_id = %s AND a.t_id = %s;"
+#     else:  # Get opponents with one win less than player
+#         query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, " \
+#                 "b.wins FROM standings AS a LEFT JOIN standings AS b " \
+#                 "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
+#                 "WHERE b.wins = a.wins-1 AND a.p_id = %s AND a.t_id = %s;"
+#     c.execute(query, (bleach.clean(player_id), bleach.clean(tournament_id),))
+#     opponents = [(row[1], row[2]) for row in c.fetchall()]
+#     conn.commit()
+#     conn.close()
+#     return opponents
 
 
 def decide_match(t_id, player1_id, player2_id):
