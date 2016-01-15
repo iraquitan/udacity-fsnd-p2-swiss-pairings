@@ -157,8 +157,10 @@ def test_new_database():
     register_player("Hedurado Cordeiro")
     register_player("Fredson Santos")
     register_player("Yoshio")
+    register_player("Wallace Lira")
     players_ids = get_players_id()
 
+    # tournaments_n_players = [16, 17, 18]
     # tournaments_n_players = [8, 6, 7, 4, 9]
     # tournaments_n_players = [6,6,6,6,6,6,6,6,6,6,6,6]
     # tournaments_n_players = [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
@@ -206,7 +208,23 @@ def test_new_database():
                 for st in standings:
                     print("|{0:^8}|{1:^8}|{2:^20}|{3:^6}|{4:^9}|".format(
                             st[0], st[1], st[2], st[3], st[4]))
-        print("\nWinner is {}".format(standings[0]))
+        if standings[0][3] > standings[1][3]:
+            print("\nWinner is {0}:\n"
+                  "\tWins: {1}"
+                  "\tMatches: {2}"
+                  "\tOMW: {3}".format((standings[0][1], standings[0][2]),
+                                      standings[0][3], standings[0][4],
+                                      standings[0][5]))
+        else:
+            if standings[0][5] > standings[1][5]:
+                print("\nWinner by 'TIEBREAK' is {0}:\n"
+                      "\tWins: {1}"
+                      "\tMatches: {2}"
+                      "\tOMW: {3}".format((standings[0][1], standings[0][2]),
+                                          standings[0][3], standings[0][4],
+                                          standings[0][5]))
+            else:
+                print("\nNo Winner by 'TIEBREAK'!!!")
 
     print "9. After one match, players with one win are paired."
 
