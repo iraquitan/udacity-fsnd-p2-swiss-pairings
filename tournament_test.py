@@ -12,13 +12,19 @@ def test_delete_matches():
 
 def test_delete():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     print "2. Player records can be deleted."
 
 
 def test_count():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     c = count_players()
     if c == '0':
         raise TypeError(
@@ -30,7 +36,10 @@ def test_count():
 
 def test_register():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     register_player("Chandra Nalaar")
     c = count_players()
     if c != 1:
@@ -41,7 +50,10 @@ def test_register():
 
 def test_register_count_delete():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     register_player("Markov Chaney")
     register_player("Joe Malik")
     register_player("Mao Tsu-hsi")
@@ -59,40 +71,60 @@ def test_register_count_delete():
 
 def test_standings_before_matches():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     register_player("Melpomene Murray")
     register_player("Randy Schwartz")
-    standings = player_standings()
+    create_tournament(num_of_players=2)
+    players_ids = get_players_id()
+    reg_tournaments = get_tournaments_id()
+    for i in range(2):
+        subscribe_player(players_ids[i], reg_tournaments[-1])
+
+    standings = player_standings(reg_tournaments[-1])
     if len(standings) < 2:
-        raise ValueError("Players should appear in player_standings even before "
-                         "they have played any matches.")
+        raise ValueError("Players should appear in player_standings even "
+                         "before they have played any matches.")
     elif len(standings) > 2:
         raise ValueError("Only registered players should appear in standings.")
-    if len(standings[0]) != 4:
-        raise ValueError("Each player_standings row should have four columns.")
-    [(id1, name1, wins1, matches1), (id2, name2, wins2, matches2)] = standings
+    if len(standings[0]) != 5:
+        raise ValueError("Each player_standings row should have five columns.")
+    [(t_id, id1, name1, wins1, matches1),
+     (t_id, id2, name2, wins2, matches2)] = standings
     if matches1 != 0 or matches2 != 0 or wins1 != 0 or wins2 != 0:
         raise ValueError(
             "Newly registered players should have no matches or wins.")
     if set([name1, name2]) != set(["Melpomene Murray", "Randy Schwartz"]):
-        raise ValueError("Registered players' names should appear in standings, "
-                         "even if they have no matches played.")
-    print "6. Newly registered players appear in the standings with no matches."
+        raise ValueError("Registered players' names should appear in "
+                         "standings, even if they have no matches played.")
+    print "6. Newly registered players appear in the standings with no " \
+          "matches."
 
 
 def test_report_matches():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     register_player("Bruno Walton")
     register_player("Boots O'Neal")
     register_player("Cathy Burton")
     register_player("Diane Grant")
-    standings = player_standings()
-    [id1, id2, id3, id4] = [row[0] for row in standings]
-    report_match(id1, id2)
-    report_match(id3, id4)
-    standings = player_standings()
-    for (i, n, w, m) in standings:
+    create_tournament(num_of_players=4)
+    players_ids = get_players_id()
+    reg_tournaments = get_tournaments_id()
+    for i in range(4):
+        subscribe_player(players_ids[i], reg_tournaments[-1])
+
+    standings = player_standings(reg_tournaments[-1])
+    [id1, id2, id3, id4] = [row[1] for row in standings]
+    report_match(reg_tournaments[-1], id1, id2)
+    report_match(reg_tournaments[-1], id3, id4)
+    standings = player_standings(reg_tournaments[-1])
+    for (t, i, n, w, m) in standings:
         if m != 1:
             raise ValueError("Each player should have one match recorded.")
         if i in (id1, id3) and w != 1:
@@ -104,20 +136,29 @@ def test_report_matches():
 
 def test_pairings():
     delete_matches()
+    delete_byes()
+    delete_tournament_players()
     delete_players()
+    delete_tournaments()
     register_player("Twilight Sparkle")
     register_player("Fluttershy")
     register_player("Applejack")
     register_player("Pinkie Pie")
-    standings = player_standings()
-    [id1, id2, id3, id4] = [row[0] for row in standings]
-    report_match(id1, id2)
-    report_match(id3, id4)
-    pairings = swiss_pairings()
-    if len(pairings) != 2:
+    create_tournament(num_of_players=4)
+    players_ids = get_players_id()
+    reg_tournaments = get_tournaments_id()
+    for i in range(4):
+        subscribe_player(players_ids[i], reg_tournaments[-1])
+    standings = player_standings(reg_tournaments[-1])
+    [id1, id2, id3, id4] = [row[1] for row in standings]
+    report_match(reg_tournaments[-1], id1, id2)
+    report_match(reg_tournaments[-1], id3, id4)
+    pairings = swiss_pairings(reg_tournaments[-1])
+    if len(pairings['pairs']) != 2:
         raise ValueError(
             "For four players, swiss_pairings should return two pairs.")
-    [(pid1, pname1, pid2, pname2), (pid3, pname3, pid4, pname4)] = pairings
+    [(pid1, pname1, pid2, pname2),
+     (pid3, pname3, pid4, pname4)] = pairings['pairs']
     correct_pairs = set([frozenset([id1, id3]), frozenset([id2, id4])])
     actual_pairs = set([frozenset([pid1, pid2]), frozenset([pid3, pid4])])
     if correct_pairs != actual_pairs:
@@ -128,11 +169,6 @@ def test_pairings():
 
 def test_new_database():
     # Delete records
-    # players_ids = get_players_id()
-    # tournaments_ids = get_tournaments_id()
-    # for p_id in players_ids:
-    #     for t_id in tournaments_ids:
-    #         unregister_player(p_id, t_id)
     delete_matches()
     delete_byes()
     delete_tournament_players()
@@ -160,12 +196,9 @@ def test_new_database():
     register_player("Wallace Lira")
     players_ids = get_players_id()
 
-    # tournaments_n_players = [16, 17, 18]
-    # tournaments_n_players = [8, 6, 7, 4, 9]
-    # tournaments_n_players = [6,6,6,6,6,6,6,6,6,6,6,6]
-    # tournaments_n_players = [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
-    tournaments_n_players = [4,4,4,4,4,4,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,9,9,9,9,9,9] # noqa
+    tournaments_n_players = [4, 6, 7, 8, 9, 16, 17, 18]
     for tournament_n in tournaments_n_players:
+        byes = []
         print("\n\n{:#^64}".format('#'))
         title = "Tournament with {} players".format(tournament_n)
         print("{:#^64}".format(title))
@@ -189,10 +222,20 @@ def test_new_database():
             for pairs in pairings['pairs']:
                 print("\t{}".format(pairs))
                 decide_match(reg_tournaments[-1], pairs[0], pairs[2])
+            if tournament_n % 2 == 0 and pairings['byes'] is not None:
+                raise ValueError("For even number of players, swiss pairings "
+                                 "should return no bye.")
             print('Byes for match {}:'.format(match + 1))
             print("\t{}".format(pairings['byes']))
+            if tournament_n % 2 != 0 and pairings['byes'] is None:
+                raise ValueError("For odd number of players, swiss pairings "
+                                 "should return a bye per round.")
             if pairings['byes'] is not None:
+                if pairings['byes'] in byes:
+                    raise ValueError("The same player should not receive more "
+                                     "than one bye per tournament.")
                 report_bye(reg_tournaments[-1], pairings['byes'][0])
+                byes.append(pairings['byes'])
             print('Match {} results:'.format(match + 1))
             if match + 1 == n_matches:
                 standings = player_standings_omw(reg_tournaments[-1])
@@ -226,17 +269,17 @@ def test_new_database():
             else:
                 print("\nNo Winner by 'TIEBREAK'!!!")
 
-    print "9. After one match, players with one win are paired."
+    print "9. Tests with 4, 6, 8, 9, 16, 17 and 18 number of players passed."
 
 if __name__ == '__main__':
-    # test_delete_matches()
-    # test_delete()
-    # test_count()
-    # test_register()
-    # test_register_count_delete()
-    # test_standings_before_matches()
-    # test_report_matches()
-    # test_pairings()
+    test_delete_matches()
+    test_delete()
+    test_count()
+    test_register()
+    test_register_count_delete()
+    test_standings_before_matches()
+    test_report_matches()
+    test_pairings()
     # Custom tests
     test_new_database()
     print "Success!  All tests pass!"
