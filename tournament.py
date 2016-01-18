@@ -458,38 +458,6 @@ def number_of_matches(num_of_players):
     return num_of_rounds
 
 
-# def get_player_opponents(player_id, tournament_id, m_wins=0):
-#     """Returns a player's id possible opponents.
-#
-#     Args:
-#       player_id: the player's id.
-#       tournament_id: the tournament' id.
-#       m_wins: if should search opponents with same number of wins or not
-#
-#     Returns:
-#       opponents: the player's possible opponents ids.
-#     """
-#     conn = connect()
-#     c = conn.cursor()
-#     if m_wins is 0:
-#         query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, " \
-#                 "a.wins FROM standings AS a LEFT JOIN standings AS b " \
-#                 "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
-#                 "WHERE a.wins = b.wins AND a.p_id = %s AND a.t_id = %s;"
-#         c.execute(query, (bleach.clean(player_id),
-#                           bleach.clean(tournament_id),))
-#     else:  # Get opponents with one or more win less than player
-#         query = "SELECT a.p_id AS a_id, b.p_id AS b_id, b.name AS b_name, " \
-#                 "b.wins FROM standings AS a LEFT JOIN standings AS b " \
-#                 "ON a.p_id <> b.p_id AND a.t_id = b.t_id " \
-#                 "WHERE b.wins = a.wins-%s AND a.p_id = %s AND a.t_id = %s;"
-#         c.execute(query, (bleach.clean(m_wins), bleach.clean(player_id),
-#                           bleach.clean(tournament_id),))
-#     opponents = [(row[1], row[2]) for row in c.fetchall()]
-#     conn.commit()
-#     conn.close()
-#     return opponents
-
 def get_player_opponents(player_id, tournament_id, same_wins=True):
     """Returns a player's id possible opponents.
 
