@@ -15,21 +15,21 @@
 -- Connect to tournament database
 -- \connect tournament;
 
--- Create Player table
+-- Create Players table
 CREATE TABLE players (
   id SERIAL PRIMARY KEY,
   name TEXT,
   date_created TIMESTAMP DEFAULT current_timestamp
 );
 
--- Create tournament table
+-- Create Tournaments table
 CREATE TABLE tournaments (
   id SERIAL PRIMARY KEY,
   num_of_players INTEGER,
   date_created TIMESTAMP DEFAULT current_timestamp
 );
 
--- Create Tournament Player table
+-- Create Tournament Players table
 CREATE TABLE tournament_players (
   id SERIAL PRIMARY KEY,
   player_id INTEGER REFERENCES players,
@@ -37,7 +37,7 @@ CREATE TABLE tournament_players (
   date_created TIMESTAMP DEFAULT current_timestamp
 );
 
--- Create match table
+-- Create Matches table
 CREATE TABLE matches (
   id SERIAL PRIMARY KEY,
   tournament_id INTEGER REFERENCES tournaments,
@@ -46,7 +46,7 @@ CREATE TABLE matches (
   date_created TIMESTAMP DEFAULT current_timestamp
 );
 
--- Create byes table
+-- Create Byes table
 CREATE TABLE byes (
   tournament_id INTEGER REFERENCES tournaments,
   player_id INTEGER REFERENCES players,
@@ -54,7 +54,7 @@ CREATE TABLE byes (
   PRIMARY KEY (tournament_id, player_id)
 );
 
--- Create new standings view
+-- Create Standings view
 CREATE VIEW standings AS
   SELECT tournaments.id AS t_id, players.id AS p_id, players.name,
     (
@@ -81,7 +81,7 @@ CREATE VIEW standings AS
       LEFT JOIN tournaments
         ON tournaments.id = tournament_players.tournament_id;
 
--- OMW (Opponent Match Wins)
+-- Create OMW (Opponent Match Wins) view
 CREATE VIEW omw AS
   SELECT a.t_id AS omw_tid, a.p_id AS omw_pid, sum(o.wins) AS OMW
   FROM standings AS a
@@ -92,6 +92,7 @@ CREATE VIEW omw AS
     WHERE a.t_id = matches.tournament_id AND a.t_id = o.t_id
   GROUP BY a.p_id, a.t_id;
 
+-- Create Standings with OMW (Opponent Match Wins) view
 CREATE VIEW standings_owm AS
   SELECT standings_new.t_id, standings_new.p_id, standings_new.name,
     standings_new.wins, standings_new.matches_played, standings_new.omw
