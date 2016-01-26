@@ -15,9 +15,7 @@ This project provides code to store players and matches in database and provide 
 ## Quick start
 * Clone the repo: `git clone https://github.com/iraquitan/fullstack-nanodegree-vm.git`.
 * Change directory to the `vagrant/` directory inside the previously cloned repo.
-* To run this project with extra credits, run:
-    - `git checkout extras`
-    - Extra credits includes:
+* This project has extra credits, listed above:
     - Prevent rematches between players.
     - Don’t assume an even number of players. If there is an odd number of players, assign one player a “bye” (skipped round). A bye counts as a free win. A player should not receive more than one bye in a tournament.
     - When two players have the same number of wins, rank them according to OMW (Opponent Match Wins), the total number of wins by players they have played against.
