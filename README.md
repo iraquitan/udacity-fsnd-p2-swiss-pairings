@@ -5,6 +5,7 @@ This project provides code to store players and matches in database and provide 
 * [Requirements](#requirements)
 * [Quick start](#quick-start)
 * [Creator](#creator)
+* [License](#license)
 
 ## Requirements
 * Python 2.7
@@ -34,3 +35,6 @@ This project provides code to store players and matches in database and provide 
 
 * <https://twitter.com/iraquitan_filho>
 * <https://github.com/iraquitan>
+
+## License
+The contents of this repository are covered under the [MIT License](LICENSE).
